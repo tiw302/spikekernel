@@ -1,34 +1,29 @@
 # WRO PROFESSIONAL API REFERENCE
+```yaml
+      ___________________
+     |      SPIKE        |
+     |   [  O  ]  HUB    |
+     |___________________|
+     |  A  B  C  D  E  F |
+     '-------------------'
+```
 A complete technical guide to all functions and classes in the framework.
 
----
-
-## [0] SYSTEM SPECIFICATIONS
-Before coding, understand the following standards used in this framework:
-
-### Units
-- **Distance**: Centimeters (cm)
-- **Angle**: Degrees (deg) from -180 to 180
-- **Speed**: Power units (0 to 1000)
-
-### Coordinate System
-- **X-Axis**: Forward / Backward movement.
-- **Y-Axis**: Left / Right movement.
-- **Heading (0 deg)**: Points towards the positive X-axis (Forward).
-- **Rotation**: Positive (+) is Counter-Clockwise (Left), Negative (-) is Clockwise (Right).
-
-### Best Practices
-- **Stationary Gyro**: Do NOT touch or move the robot during the first 5 seconds of `full_setup`.
-- **Battery**: Always run missions with >7.4V (BAT_WARN_MV) for consistent PID performance.
-- **Pairing**: `motor_pair.pair()` is handled automatically by `setup.py`, do not re-pair manually unless necessary.
+**English Edition** | [ภาษาไทย](API_REFERENCE_TH.md)
 
 ---
+
+## [0] MISSION CHECKLIST (PRE-LAUNCH)
+Follow these 4 steps before every official run to ensure maximum reliability.
+
+1. **Battery Check**: Ensure voltage is > 7.8V for consistent PID motor performance.
+2. **Gyro Calibration**: Run `setup.full_setup()`. Keep the robot **perfectly still** for 5 seconds.
+3. **Sensor Calibration**: Use `CAL.sweep()` or `setup.sensor_setup()` on the actual competition mat.
+4. **Origin Alignment**: Use `wall_align()` or manual placement to ensure X, Y, and Heading are perfectly set to 0.
+
+---
+
 ## [1] GETTING STARTED
-To use this library in your mission script (e.g., `main.py`), follow this pattern:
-
-1. **Import the library**: `import pid_lib as P` and `import setup`.
-2. **Initialize**: Call `setup.full_setup()` to calibrate sensors and gyro.
-3. **Loop**: Use the returned `odo` object for all movement commands.
 
 **Example Code (Professional Pattern):**
 ```python
@@ -55,66 +50,163 @@ async def run_mission():
 ---
 
 ## [2] MOTION ENGINE (pid_lib)
-Core movement and navigation routines.
 
-### straight(odo, dist_cm, vmax=None, heading=None)
-Move straight with S-Curve acceleration and PD steering.
-- `dist_cm`: Distance in centimeters (negative for backward).
-- `heading`: Maintain this absolute angle (default: current heading).
+### straight(odo, dist_cm)
+Drive Forward (+) or Backward (-) in a straight line.
+```yaml
+Visual: |
+      [  FINISH  ]
+      +----------+
+      | [----]   |
+      | |  O |   |
+      | [----]   |
+      +----------+
+           /|\
+            | (Move Straight)
+            |
+      +----------+
+      | [----]   |
+      | |  O |   |
+      | [----]   |
+      +----------+
+      [  START   ]
+```
 
-### turn(odo, target_h, vmax=None, max_ms=3000)
-Rotate to an absolute heading using PD control.
-- `target_h`: Target angle (-180 to 180).
+### turn(odo, target_h)
+Rotate the robot on its center axis to a specific angle.
+```yaml
+Visual: |
+      +----------+
+      |  [ || ]  |
+      |  [  O ]  | (Rotate 90)
+      |  [ || ]  |
+      +----------+
+           /|\
+            | (Turn on Spot)
+            |
+      +----------+
+      |  [----]  |
+      |  |  O |  | (Start 0)
+      |  [----]  |
+      +----------+
+```
 
-### pivot_turn(odo, target_h, side='auto', vmax=None)
-Turn using only one wheel (swings around the locked wheel).
-- `side`: 'left', 'right', or 'auto'.
-
-### swing_turn(odo, target_h, outer_speed=None, inner_ratio=0.0)
-Smooth arc turn where both wheels move at different speeds.
-
-### straight_with_motor(odo, dist_cm, vmax, arm_port, arm_target_deg)
-Drive straight while moving an attachment motor simultaneously.
-- Useful for picking up objects while moving to save time.
+### pivot_turn(odo, target_h, side)
+Turn by locking one wheel and swinging the other.
+```yaml
+Visual: |
+               +------+
+               | [||] |
+               | [ O] |
+               | [||] |
+               +------+
+              /
+             / (Swing Path)
+            /
+      +----------+
+      |  [FIXED] |
+      |  |[X] |  |  <-- Left wheel stays still
+      |  [----]  |
+      +----------+
+```
 
 ---
 
-## [3] ATTACHMENT CONTROL
-Routines for controlling robotic arms and claws.
+## [3] ADVANCED SENSOR MOTION (sensor_lib)
 
-### motor_run_degrees(p, target_deg, speed, tol=2)
-Move a single motor to a specific relative position.
-- `p`: Port (e.g., `C.PORT_C1`).
-- `target_deg`: Relative target in degrees.
+### lf_n_junctions(n, vmax)
+Follow line and stop exactly at the Nth junction (Intersection).
+```yaml
+Visual: |
+      [ STOP AT #N ]
+      +----------+
+      |  [----]  |
+      |  |  O |  |
+      |  [----]  |
+      +----------+
+    -------+------- (Junc #2)
+           |
+    -------+------- (Junc #1)
+           |
+      [  START   ]
+```
 
-### motor_run_until_stall(p, speed, max_ms=3000, stall_ms=200)
-Run motor until it hits resistance (useful for gripping or lowering arms).
-- Returns `True` if stall was detected.
+### lf_until_color(target_color, vmax)
+Follow line until a specific color zone is detected.
+```yaml
+Visual: |
+      [  STOP  ]
+      +--------+
+      | [----] |
+      | |  O | |  <-- Robot stops on target
+      | [----] |
+      +--------+
+      ==========  (TARGET ZONE)
+          |
+          | (Line Follow)
+          |
+      +--------+
+      | [----] |
+      | |  O | |
+      | [----] |
+      +--------+
+      [ START  ]
+```
 
-### motor_home(p, speed=150)
-Run motor backward until it stalls and reset its position to 0.
+### detect_color_sequence(n_colors)
+Drive and record a sequence of colors (e.g., sorting).
+```yaml
+Visual: |
+    [START] --> [RED] --> [BLUE] --> [GREEN]
+      |          |         |          |
+    [---]      [---]     [---]      [---]
+    | O | ---> | O | --->| O | ---> | O |
+    [---]      [---]     [---]      [---]
+```
 
 ---
 
-## [4] PROFESSIONAL UTILITIES
-Diagnostic and helper routines.
+## [4] ATTACHMENT CONTROL
 
-### wall_align(speed=200, max_ms=1500)
-Drive backward into a wall to square the robot and reset the heading.
+### motor_run_until_stall(p, speed)
+Grip or move arm until it hits an object/mechanical limit.
+```yaml
+Visual: |
+    [ OPEN ]           [ CLOSED / STALL ]
+     \        /             |        |
+      \      /    ---->     | [OBJ]  |
+       [----]               [--------]
+```
 
-### comp_check()
-Diagnostic: checks battery %, gyro noise, straight line accuracy, and 360-turn error.
-
-### calibrate_gyro(preheat_ms=5000, samples=300)
-Calculate gyro bias. Robot MUST be stationary.
+### motor_home(p)
+Reset arm to 0 by driving it until it hits the mechanical stop.
 
 ---
 
-## [5] PERCEPTION (sensor_lib)
-Light/Color sensor processing.
+## [5] ALIGNMENT TOOLS
 
-### CAL.sweep(port)
-Auto-calibration: Find Black/White values automatically.
+### wall_align(speed)
+Square the robot against a wall to reset heading.
+```yaml
+Visual: |
+    ======================== [ WALL ]
+      +----------+
+      |  [----]  | <--- (Push / Square)
+      |  |  O |  |
+      |  [----]  |
+      +----------+
+```
 
-### LineEst.dual()
-Get normalized line error (-1.0 to 1.0) using two light sensors.
+### align_to_wall_color(target_color)
+Drive until both sensors detect a colored zone to ensure straight entry.
+```yaml
+Visual: |
+      +--------+
+      | [----] |
+      | |  O | |  <-- Both Sensors on Color
+      | [----] |
+      +--------+
+    ============== (COLOR WALL)
+          ^
+          | (Approaching)
+```
