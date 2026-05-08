@@ -36,23 +36,23 @@ async def run_mission():
         return
 
     # 2. Run initialization (Gyro + Sensors + Wall Align)
-    # This returns None if hardware check fails
     odo = await setup.full_setup()
     
     if odo is not None:
         # 3. Start Mission
         await P.straight(odo, 50)
         await P.turn(odo, 90)
-    else:
-        print("SETUP FAILED: Check hardware or sensors.")
 ```
 
 ---
 
-## [2] MOTION ENGINE (pid_lib)
+## [2] BASIC MOTION (pid_lib)
 
 ### straight(odo, dist_cm)
 Drive Forward (+) or Backward (-) in a straight line.
+- **`odo`**: The Odometry object tracking the robot's position.
+- **`dist_cm`**: Distance to move in centimeters (Positive = Forward, Negative = Backward).
+
 ```yaml
 Visual: |
       [  FINISH  ]
@@ -73,7 +73,10 @@ Visual: |
 ```
 
 ### turn(odo, target_h)
-Rotate the robot on its center axis to a specific angle.
+Rotate the robot on its center axis to a specific global angle.
+- **`odo`**: The Odometry object.
+- **`target_h`**: Absolute target heading in degrees (-180 to 180).
+
 ```yaml
 Visual: |
       +----------+
@@ -93,6 +96,10 @@ Visual: |
 
 ### pivot_turn(odo, target_h, side)
 Turn by locking one wheel and swinging the other.
+- **`odo`**: The Odometry object.
+- **`target_h`**: Absolute target heading in degrees.
+- **`side`**: The wheel to keep stationary. Options: `'left'`, `'right'`, or `'auto'` (shortest path).
+
 ```yaml
 Visual: |
                +------+
@@ -105,7 +112,7 @@ Visual: |
             /
       +----------+
       |  [FIXED] |
-      |  |[X] |  |  <-- Left wheel stays still
+      |  |[X] |  |  <-- Stationary wheel
       |  [----]  |
       +----------+
 ```
@@ -116,6 +123,9 @@ Visual: |
 
 ### lf_n_junctions(n, vmax)
 Follow line and stop exactly at the Nth junction (Intersection).
+- **`n`**: Total number of junctions to cross before stopping.
+- **`vmax`**: Maximum speed for the line following (0-1000).
+
 ```yaml
 Visual: |
       [ STOP AT #N ]
@@ -133,6 +143,9 @@ Visual: |
 
 ### lf_until_color(target_color, vmax)
 Follow line until a specific color zone is detected.
+- **`target_color`**: The color constant to stop at (e.g., `S.RED`, `S.BLUE`).
+- **`vmax`**: Maximum speed (0-1000).
+
 ```yaml
 Visual: |
       [  STOP  ]
@@ -154,15 +167,9 @@ Visual: |
 ```
 
 ### detect_color_sequence(n_colors)
-Drive and record a sequence of colors (e.g., sorting).
-```yaml
-Visual: |
-    [START] --> [RED] --> [BLUE] --> [GREEN]
-      |          |         |          |
-    [---]      [---]     [---]      [---]
-    | O | ---> | O | --->| O | ---> | O |
-    [---]      [---]     [---]      [---]
-```
+Drive and record a sequence of colors (e.g., mission instructions).
+- **`n_colors`**: Number of color markers to read.
+- **Returns**: A list of color constants detected in order.
 
 ---
 
@@ -170,16 +177,12 @@ Visual: |
 
 ### motor_run_until_stall(p, speed)
 Grip or move arm until it hits an object/mechanical limit.
-```yaml
-Visual: |
-    [ OPEN ]           [ CLOSED / STALL ]
-     \        /             |        |
-      \      /    ---->     | [OBJ]  |
-       [----]               [--------]
-```
+- **`p`**: The motor port (e.g., `C.PORT_C1`).
+- **`speed`**: Power level (Positive or Negative depending on direction).
 
 ### motor_home(p)
 Reset arm to 0 by driving it until it hits the mechanical stop.
+- **`p`**: The motor port.
 
 ---
 
@@ -187,26 +190,8 @@ Reset arm to 0 by driving it until it hits the mechanical stop.
 
 ### wall_align(speed)
 Square the robot against a wall to reset heading.
-```yaml
-Visual: |
-    ======================== [ WALL ]
-      +----------+
-      |  [----]  | <--- (Push / Square)
-      |  |  O |  |
-      |  [----]  |
-      +----------+
-```
+- **`speed`**: Backward speed (usually 200-300).
 
 ### align_to_wall_color(target_color)
 Drive until both sensors detect a colored zone to ensure straight entry.
-```yaml
-Visual: |
-      +--------+
-      | [----] |
-      | |  O | |  <-- Both Sensors on Color
-      | [----] |
-      +--------+
-    ============== (COLOR WALL)
-          ^
-          | (Approaching)
-```
+- **`target_color`**: The color constant to align with.
