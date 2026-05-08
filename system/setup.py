@@ -35,8 +35,13 @@ import config as C
 async def check_battery(warn_only:bool=False)->bool:
     v=_hub.battery.voltage()
     pct=(v-C.BAT_MIN_MV)/(C.BAT_FULL_MV-C.BAT_MIN_MV)*100
-    ok=v>=C.BAT_WARN_MV
-    print(f"[bat] {v}mv  {pct:.0f}%  {'ok' if ok else 'LOW'}")
+    import config as C
+    col = C.CLR_GRN if ok else C.CLR_RED
+    print(f"{col}[bat]{C.CLR_RST} {v}mv  {pct:.0f}%  {'ok' if ok else 'LOW'}")
+    if not ok:
+        _hub.sound.beep(200, 500) # Low pitch warning
+    else:
+        _hub.sound.beep(600, 100) # High pitch ok
     return ok or warn_only
 
 #  ██████  ██    ██ ██████   ██████  
@@ -48,7 +53,11 @@ async def check_battery(warn_only:bool=False)->bool:
 # >>gyro
 
 async def gyro_init(preheat_ms:int=5000, samples:int=300)->float:
+    print("[setup] gyro init -- DO NOT MOVE")
+    _hub.light_matrix.show_image(_hub.light_matrix.IMAGE_SQUARE) # Show warning icon
     bias=await P.calibrate_gyro(preheat_ms=preheat_ms,samples=samples)
+    _hub.sound.beep(880, 200) # Success beep
+    _hub.light_matrix.off()
     return bias
 
 # ███████ ███████ ███    ██ ███████  ██████  ██████  
@@ -67,9 +76,9 @@ async def sensor_setup(auto:bool=False)->None:
     if auto:
         await S.CAL.sweep(C.PORT_C1); await S.CAL.sweep(C.PORT_C2)
     else:
-        print("[setup] place both sensors on WHITE (3s)..."); time.sleep_ms(3000)
+        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on WHITE (3s)..."); time.sleep_ms(3000)
         S.CAL.white(C.PORT_C1,n=30); S.CAL.white(C.PORT_C2,n=30)
-        print("[setup] place both sensors on BLACK (3s)..."); time.sleep_ms(3000)
+        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on BLACK (3s)..."); time.sleep_ms(3000)
         S.CAL.black(C.PORT_C1,n=30); S.CAL.black(C.PORT_C2,n=30)
     S.sensor_report()
 
@@ -110,10 +119,10 @@ async def full_setup(skip_sensor_cal:bool=False,
       5. wall align + reset origin
     returns odometry if all ok, none if aborted
     """
-    print("\n=== full setup ===")
+    print(f"\n{C.CLR_BLU}[setup]{C.CLR_RST} === full setup ===")
 
     if not await check_battery():
-        print("[setup] battery too low -- charge first"); return None
+        print(f"{C.CLR_RED}[setup]{C.CLR_RST} battery too low -- charge first"); return None
 
     await gyro_init()
 
@@ -127,8 +136,11 @@ async def full_setup(skip_sensor_cal:bool=False,
     odo=await init_odometry(x,y,h)
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     await align_and_reset(odo,x,y,h)
-
-    print("=== setup done -- ready ===\n")
+    import config as C
+    print(f"{C.CLR_GRN}=== setup done -- ready ==={C.CLR_RST}\n")
+    _hub.sound.beep(1000, 100)
+    await runloop.sleep_ms(100)
+    _hub.sound.beep(1200, 200) # Celebration melody
     return odo
 
 async def quick_setup(x:float=0.0, y:float=0.0, h:float=0.0) -> P.Odometry:

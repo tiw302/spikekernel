@@ -231,28 +231,17 @@ JUNC_CONFIRM   = 5
 # ความคลาดเคลื่อนที่ยอมรับได้ในการบันทึกตำแหน่งอ้างอิง
 LM_TOL_CM      = 4.5
 
-# ███████ ██    ██ ███████ ████████ ███████ ███    ███ 
-# ██       ██  ██  ██         ██    ██      ████  ████ 
-# ███████   ████   ███████    ██    █████   ██ ████ ██ 
-#      ██    ██         ██    ██    ██      ██  ██  ██ 
-# ███████    ██    ███████    ██    ███████ ██      ██ 
-#
-# >>system & logging
-# >>ระบบและการเก็บล็อก
-
-LOG_ENABLED    = True
-LOG_FILENAME   = "logs.csv"
-LOG_INTERVAL   = 3            # log every N ticks (ทุกๆ N รอบ)
-LOG_BUFFER_MAX = 50           # write to flash when buffer reaches this
-
-# comp-day check limits
-# ขีดจำกัดการตรวจสอบในวันแข่ง
-CHK_NOISE_MAX  = 10.0
-CHK_STR_ERR_CM = 1.5
-CHK_TURN_ERR   = 3.0
 
 # battery
 # แบตเตอรี่
 BAT_FULL_MV    = 8300
 BAT_WARN_MV    = 7400
 BAT_MIN_MV     = 6400
+# >>visuals
+# ANSI Colors for Console
+CLR_RED    = "\033[91m"
+CLR_GRN    = "\033[92m"
+CLR_YLW    = "\033[93m"
+CLR_BLU    = "\033[94m"
+CLR_GRY    = "\033[90m"
+CLR_RST    = "\033[0m"

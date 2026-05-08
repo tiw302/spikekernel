@@ -1,58 +1,30 @@
-"""
-    main.py -- wro mission entry point.
-    main.py -- จุดเริ่มต้นสำหรับเขียนภารกิจ wro
-
-    how to use:
-    -----------
-    1. write your mission logic in mission(odo, tm).
-    2. use tm.start(coro) for non-blocking attachment movements.
-    3. use kernel.run(mission) at the end of the file.
-"""
-
-import sys
-# add system folder to path (ให้หุ่นยนต์รู้จักโฟลเดอร์เก็บโค้ดระบบ)
-sys.path.append('/system')
-
-import kernel
+import kernel, setup
 import pid_lib as P
-import config  as C
+import field as F
+from menu import select_mission
 
-# ███    ███ ██ ███████ ███████ ██  ██████  ███    ██ 
-# ████  ████ ██ ██      ██      ██ ██    ██ ████   ██ 
-# ██ ████ ██ ██ ███████ ███████ ██ ██    ██ ██ ██  ██ 
-# ██  ██  ██ ██      ██      ██ ██ ██    ██ ██  ██ ██ 
-# ██      ██ ██ ███████ ███████ ██  ██████  ██   ████ 
-#
-# >>mission logic
-# >>ลำดับภารกิจ
-
-async def mission(odo, tm):
-    """
-    write your mission here (เขียนภารกิจของคุณที่นี่)
-    -------------------------------------------
-    odo : odometry object (สำหรับคุมการเดิน)
-    tm  : task manager (สำหรับคุมงานเบื้องหลัง เช่น แขนมอเตอร์)
-    """
+async def mission_1(odo, tm):
+    print("--- Running Mission 1 ---")
     
-    # ⬐⬐ วางแผนเส้นทางการเดินที่นี่ ⬎⬎
-    # ===============================================
-
+    # Use coordinates from field.py
+    await P.straight(odo, 50)
     
-    # ===============================================
-    print("mission finished!")
+    await P.turn(odo, F.TARGET_OBSTACLE_1[2])
+    await P.goto_xy(odo, F.TARGET_OBSTACLE_1[0], F.TARGET_OBSTACLE_1[1])
+    
 
-#
-# █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-# █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-#
-#
-# ███████ ██   ██ ███████  ██████ ██    ██ ████████ ██  ██████  ███    ██ 
-# ██       ██ ██  ██      ██      ██    ██    ██    ██ ██    ██ ████   ██ 
-# █████     ███   █████   ██      ██    ██    ██    ██ ██    ██ ██ ██  ██ 
-# ██       ██ ██  ██      ██      ██    ██    ██    ██ ██    ██ ██  ██ ██ 
-# ███████ ██   ██ ███████  ██████  ██████     ██    ██  ██████  ██   ████ 
-#
-# >>execution
-# >>เริ่มการทำงาน
+async def mission_2(odo, tm):
+    print("--- Running Mission 2 ---")
+    await P.straight(odo, -20)
 
-kernel.run(mission)
+# Main Mission Handler
+async def main_mission(odo, tm):
+    # 1. Show Menu to select mission
+    missions = [mission_1, mission_2]
+    selected_idx = await select_mission(missions)
+    
+    # 2. Run the selected mission
+    await missions[selected_idx](odo, tm)
+
+# Run through the kernel
+kernel.run(main_mission)

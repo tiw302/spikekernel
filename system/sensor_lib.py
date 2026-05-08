@@ -162,7 +162,8 @@ def _cnt(cm): return int(cm*C.COUNT_PER_CM)
 async def lf_pd(dist_cm=50.0, vmax=500, Kp=None, Kd=None,
                 p=None, max_ms=8000) -> bool:
     """line follow — single sensor pd"""
-    print(f"[lf_pd] {dist_cm:.1f}cm  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] lf_pd {dist_cm:.1f}cm{C.CLR_RST}")
     Kp=Kp or C.LF_KP_MED; Kd=Kd or C.LF_KD_MED; p=p or C.PORT_C1
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     le=LineEst(0.3); dl=time.ticks_add(time.ticks_ms(),max_ms)
@@ -183,7 +184,8 @@ async def lf_pd(dist_cm=50.0, vmax=500, Kp=None, Kd=None,
 async def lf_gyro(dist_cm=50.0, vmax=500, Kp=None, Kd=None, Kg=None,
                   p=None, max_ms=8000) -> bool:
     """line follow — pd + gyro fusion, less zig-zag at high speed"""
-    print(f"[lf_gyro] {dist_cm:.1f}cm  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] lf_gyro {dist_cm:.1f}cm{C.CLR_RST}")
     Kp=Kp or C.LF_KP_MED; Kd=Kd or C.LF_KD_MED; Kg=Kg or C.LF_KGYRO; p=p or C.PORT_C1
     bias=_gbias()
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
@@ -211,7 +213,8 @@ async def lf_gyro(dist_cm=50.0, vmax=500, Kp=None, Kd=None, Kg=None,
 async def lf_dual(dist_cm=50.0, vmax=550, Kp=None, Kd=None,
                   max_ms=8000) -> bool:
     """line follow — dual sensor centroid, accurate on curves"""
-    print(f"[lf_dual] {dist_cm:.1f}cm  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] lf_dual {dist_cm:.1f}cm{C.CLR_RST}")
     Kp=Kp or C.LF_KP_HIGH; Kd=Kd or C.LF_KD_HIGH
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     le=LineEst(0.2); dl=time.ticks_add(time.ticks_ms(),max_ms)
@@ -233,7 +236,8 @@ async def lf_dual(dist_cm=50.0, vmax=550, Kp=None, Kd=None,
 async def lf_dual_gyro(dist_cm=50.0, vmax=600, Kp=None, Kd=None,
                         Kg=None, max_ms=8000) -> bool:
     """line follow — dual sensor + gyro fusion, highest accuracy"""
-    print(f"[lf_dual_gyro] {dist_cm:.1f}cm  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] lf_dual_gyro {dist_cm:.1f}cm{C.CLR_RST}")
     Kp=Kp or C.LF_KP_HIGH; Kd=Kd or C.LF_KD_HIGH; Kg=Kg or C.LF_KGYRO
     bias=_gbias()
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
@@ -282,7 +286,8 @@ async def lf_n_junctions(n: int, vmax: int = 400,
     mode: "single" / "gyro" / "dual" / "dual_gyro"
     slow_at_junction: reduce speed near junction for accurate detection
     """
-    print(f"[lf_n] follow to junction #{n}  mode={mode}  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] follow to junction #{n}  mode={mode}{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     bias=_gbias()
     le=LineEst(0.2 if 'dual' in mode else 0.3)
@@ -351,7 +356,8 @@ async def lf_until_color(target_color: int, vmax: int = 400,
                           mode: str = "dual_gyro",
                           max_ms: int = 15000) -> bool:
     """follow line until specific color detected under sensor"""
-    print(f"[lf_color] follow until {cname(target_color)}  v={vmax}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] follow until color {cname(target_color)}{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     bias=_gbias()
     le=LineEst(0.2); dl=time.ticks_add(time.ticks_ms(),max_ms)
@@ -390,7 +396,8 @@ async def center_on_line(speed: int = 150, p: int = None,
     nudge robot until sensor is centered on line edge (reflect = mid)
     call after stopping at a junction to align precisely
     """
-    print(f"[center] centering on line edge")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] center on line edge{C.CLR_RST}")
     p=p or C.PORT_C1; mid=CAL.mid(p)
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     dl=time.ticks_add(time.ticks_ms(),max_ms); settle=0
@@ -440,7 +447,8 @@ async def detect_color_sequence(n: int = 3, p: int = None,
         await runloop.sleep_ms(20)
 
     motor_pair.stop(motor_pair.PAIR_1)
-    print(f"[seq] result: {[cname(c) for c in seq]}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] detected sequence: {[cname(c) for c in seq]}{C.CLR_RST}")
     return seq
 
 
@@ -453,7 +461,8 @@ async def align_to_wall_color(target_color: int,
     then push for push_ms to align flat
     use for: parking in color zone, aligning before precision task
     """
-    print(f"[align_col] target={cname(target_color)}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] align to wall {cname(target_color)}{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     dl=time.ticks_add(time.ticks_ms(),max_ms)
     both_seen=False; confirm=0
@@ -500,7 +509,8 @@ async def until_color(target, vmax=400, mode="gyro",
 async def until_line(vmax=400, heading=0.0, thr=None,
                       confirm_ms=80, max_ms=10000) -> bool:
     """straight drive until line detected"""
-    print(f"[until_line] v={vmax}  h={heading:.1f}")
+    import config as C
+    print(f"{C.CLR_GRY}[sensor] until_line v={vmax}{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     th=thr or CAL.mid(); dl=time.ticks_add(time.ticks_ms(),max_ms)
     hc=heading; ht=time.ticks_ms(); I=pe=0.0; lms=lst=0

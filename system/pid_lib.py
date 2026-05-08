@@ -414,29 +414,7 @@ class _PP:
 #
 # >>system tools
 
-class Logger:
-    __slots__ = ('_buf', '_tick', '_f')
-    def __init__(self):
-        self._buf = []; self._tick = 0; self._f = C.LOG_FILENAME
-        if C.LOG_ENABLED:
-            try:
-                with open(self._f, 'w') as f:
-                    f.write("t,x,y,h,spd,err\n")
-            except: print("[log] err init")
-    def log(self, odo, err=0.0):
-        if not C.LOG_ENABLED: return
-        self._tick += 1
-        if self._tick % C.LOG_INTERVAL != 0: return
-        t = time.ticks_ms()
-        self._buf.append(f"{t},{odo.x:.2f},{odo.y:.2f},{odo.h:.1f},{odo.speed:.1f},{err:.2f}")
-        if len(self._buf) >= C.LOG_BUFFER_MAX: self.flush()
-    def flush(self):
-        if not self._buf: return
-        try:
-            with open(self._f, 'a') as f:
-                for line in self._buf: f.write(line + "\n")
-            self._buf = []
-        except: print("[log] err write")
+
 
 class TaskManager:
     __slots__ = ('_jobs',)
@@ -453,7 +431,6 @@ class TaskManager:
         motor.stop(C.PORT_L); motor.stop(C.PORT_R)
         print("[task] all cancelled")
 
-LOGGER = Logger()
 
 async def estop_loop(tm):
     from hub import button
@@ -465,7 +442,8 @@ async def estop_loop(tm):
         await runloop.sleep_ms(100)
 
 async def wall_align() -> bool:
-    print("[wall_align] aligning...")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] wall aligning...{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     dl=time.ticks_add(time.ticks_ms(),C.WA_MAX_MS)
     sL=sR=0; pL=pR=C.WA_SPEED
@@ -495,7 +473,8 @@ async def wall_align() -> bool:
 
 async def straight(odo, dist_cm, vmax=None, heading=None,
                    db=None, max_ms=6000) -> bool:
-    print(f"[straight] {dist_cm:.1f}cm  v={vmax or C.VMAX}")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] straight {dist_cm:.1f}cm{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     bf=_bat(); vmx=int((vmax or C.VMAX)*bf)
     hdg=heading if heading is not None else odo.h
@@ -521,7 +500,6 @@ async def straight(odo, dist_cm, vmax=None, heading=None,
         if db: pL,pR=db.apply(pL,pR)
         if stl.check(pL,pR): motor_pair.stop(motor_pair.PAIR_1); print("[straight] stall"); return False
         motor_pair.move_tank(motor_pair.PAIR_1,pL,pR)
-        LOGGER.log(odo, err=rem)
         await lp.tick()
     motor_pair.stop(motor_pair.PAIR_1)
     err=dist_cm-sqrt((odo.x-sx)**2+(odo.y-sy)**2)
@@ -529,7 +507,8 @@ async def straight(odo, dist_cm, vmax=None, heading=None,
 
 
 async def turn(odo, target_h, vmax=None, max_ms=3000) -> bool:
-    print(f"[turn] -> {target_h:.1f}deg")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] turn to {target_h:.1f}deg{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     vmx=int((vmax or C.VTURN)*_bat())
     lp=_Loop(); lp.reset(); settle=0
@@ -549,7 +528,8 @@ async def turn(odo, target_h, vmax=None, max_ms=3000) -> bool:
 
 async def pivot_turn(odo, target_h, side='auto', vmax=None, max_ms=3000) -> bool:
     """one wheel locked — tightest radius possible"""
-    print(f"[pivot] -> {target_h:.1f}deg  side={side}")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] pivot {side} to {target_h:.1f}deg{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     vmx=int((vmax or C.VTURN)*_bat())
     err0=norm180(target_h-odo.h)
@@ -573,7 +553,8 @@ async def pivot_turn(odo, target_h, side='auto', vmax=None, max_ms=3000) -> bool
 async def swing_turn(odo, target_h, outer_speed=None,
                      inner_ratio=0.0, max_ms=3000) -> bool:
     """inner_ratio: 0=stop  -0.5=reverse  0.5=slow"""
-    print(f"[swing] -> {target_h:.1f}deg  ratio={inner_ratio:.2f}")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] swing to {target_h:.1f}deg{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     ospd=int((outer_speed or C.VTURN)*_bat()); ispd=int(ospd*inner_ratio)
     lp=_Loop(); lp.reset(); settle=0
@@ -596,7 +577,8 @@ async def swing_turn(odo, target_h, outer_speed=None,
 
 async def arc(odo, radius_cm, angle_deg, vmax=None, max_ms=5000) -> bool:
     """constant radius arc — smooth and geometric"""
-    print(f"[arc] r={radius_cm:.1f}cm  angle={angle_deg:.1f}deg")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] arc r={radius_cm:.1f}cm{C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     bf=_bat(); vmx=int((vmax or C.VMAX)*bf)
     R=radius_cm if abs(radius_cm)>1e-3 else 1e-3
@@ -622,7 +604,8 @@ async def arc(odo, radius_cm, angle_deg, vmax=None, max_ms=5000) -> bool:
 
 
 async def goto_xy(odo, tx, ty, vmax=None, db=None, max_ms=6000) -> bool:
-    print(f"[goto_xy] -> ({tx:.1f},{ty:.1f})")
+    import config as C
+    print(f"{C.CLR_GRY}[motion] goto ({tx:.1f},{ty:.1f}){C.CLR_RST}")
     motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
     bf=_bat(); vmx=int((vmax or C.VMAX)*bf)
     lp=_Loop(); lp.reset(); dt=lp.dt
