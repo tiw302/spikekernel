@@ -1,18 +1,17 @@
 """
-    main.py -- pro entry point for wro missions.
+    main.py -- wro mission entry point.
+    main.py -- จุดเริ่มต้นสำหรับเขียนภารกิจ wro
 
     how to use:
     -----------
-    1. define your mission logic in mission().
+    1. write your mission logic in mission(odo, tm).
     2. use tm.start(coro) for non-blocking attachment movements.
-    3. run the script and use left/right buttons for emergency stop.
+    3. use kernel.run(mission) at the end of the file.
 """
 
-import runloop
-import pid_lib    as P
-import sensor_lib as S
-import setup      as SETUP
-import config     as C
+import kernel
+import pid_lib as P
+import config  as C
 
 # ███    ███ ██ ███████ ███████ ██  ██████  ███    ██ 
 # ████  ████ ██ ██      ██      ██ ██    ██ ████   ██ 
@@ -21,55 +20,35 @@ import config     as C
 # ██      ██ ██ ███████ ███████ ██  ██████  ██   ████ 
 #
 # >>mission logic
+# >>ลำดับภารกิจ
 
 async def mission(odo, tm):
     """
-    write your mission here
-    use tm.start(coro) for background tasks
+    write your mission here (เขียนภารกิจของคุณที่นี่)
+    -------------------------------------------
+    odo : odometry object (สำหรับคุมการเดิน)
+    tm  : task manager (สำหรับคุมงานเบื้องหลัง เช่น แขนมอเตอร์)
     """
-    await P.straight(odo, 50)
-    await P.turn(odo, 90)
     
-    # example background task:
-    # tm.start(P.motor_to_angle(C.PORT_C, 90))
-    # await P.straight(odo, 20)
-       
-    print("mission done")
+    # ⬐⬐ วางแผนเส้นทางการเดินที่นี่ ⬎⬎
+    # ===============================================
 
-#  ██████  ██████   ██████ ██   ██ ███████ ███████ ████████ ██████   █████  ████████ ███████ 
-# ██    ██ ██   ██ ██      ██   ██ ██      ██         ██    ██   ██ ██   ██    ██    ██      
-# ██    ██ ██████  ██      ███████ █████   ███████    ██    ██████  ███████    ██    █████   
-# ██    ██ ██   ██ ██      ██   ██ ██           ██    ██    ██   ██ ██   ██    ██    ██      
-#  ██████  ██   ██  ██████ ██   ██ ███████ ███████    ██    ██   ██ ██   ██    ██    ███████ 
+    
+    # ===============================================
+    print("mission finished!")
+
 #
-# >>orchestration
+# █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+# █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+#
+#
+# ███████ ██   ██ ███████  ██████ ██    ██ ████████ ██  ██████  ███    ██ 
+# ██       ██ ██  ██      ██      ██    ██    ██    ██ ██    ██ ████   ██ 
+# █████     ███   █████   ██      ██    ██    ██    ██ ██    ██ ██ ██  ██ 
+# ██       ██ ██  ██      ██      ██    ██    ██    ██ ██    ██ ██  ██ ██ 
+# ███████ ██   ██ ███████  ██████  ██████     ██    ██  ██████  ██   ████ 
+#
+# >>execution
+# >>เริ่มการทำงาน
 
-async def main():
-    # initialize professional tools
-    tm = P.TaskManager()
-    P._TASKS = tm
-    
-    # start emergency stop listener in background
-    tm.start(P.estop_loop(tm))
-    
-    try:
-        # show memory usage and run full setup
-        P.mem_report()
-        odo = await SETUP.full_setup()
-        if odo is None: return
-        
-        # start the mission
-        await mission(odo, tm)
-        
-    except P.EStopException:
-        print("[main] emergency stop triggered")
-    except Exception as e:
-        print(f"[main] error: {e}")
-    finally:
-        # clean up resources and save logs
-        tm.cancel_all()
-        P.LOGGER.flush()
-        print("[main] exit cleanup")
-
-# kick off the runloop
-runloop.run(main())
+kernel.run(mission)
