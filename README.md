@@ -1,6 +1,8 @@
 # WRO High-Performance Robotics Framework
 ### Engineering Whitepaper & System Documentation
 
+**English** | [ภาษาไทย](README_TH.md)
+
 ---
 
 ## Motivation
