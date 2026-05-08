@@ -1,0 +1,37 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.mpy
+
+# system logs
+logs.csv
+*.log
+
+# vscode
+.vscode/
+*.code-workspace
+
+# neovim / vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+*.un~
+.netrwhist
+*~
+
+# antigravity / gemini
+.gemini/
+.antigravity/
+
+# hardware / aria
+*.aria2
+temp/
+
+# media (as requested)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.mp4
+*.iso

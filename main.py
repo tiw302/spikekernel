@@ -9,6 +9,10 @@
     3. use kernel.run(mission) at the end of the file.
 """
 
+import sys
+# add system folder to path (ให้หุ่นยนต์รู้จักโฟลเดอร์เก็บโค้ดระบบ)
+sys.path.append('/system')
+
 import kernel
 import pid_lib as P
 import config  as C
