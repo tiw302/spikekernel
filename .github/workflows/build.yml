@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -20,7 +20,7 @@ jobs:
 
     - name: Lint with flake8
       run: |
-        # ตรวจสอบ Syntax Error และระบุบรรทัดที่ผิด
+        # Check syntax errors and flag lines
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # ตรวจสอบรูปแบบโค้ดเบื้องต้น
+        # Check basic code style
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
