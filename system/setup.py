@@ -35,7 +35,7 @@ import config as C
 async def check_battery(warn_only:bool=False)->bool:
     v=_hub.battery.voltage()
     pct=(v-C.BAT_MIN_MV)/(C.BAT_FULL_MV-C.BAT_MIN_MV)*100
-    import config as C
+    ok = v > C.BAT_MIN_MV
     col = C.CLR_GRN if ok else C.CLR_RED
     print(f"{col}[bat]{C.CLR_RST} {v}mv  {pct:.0f}%  {'ok' if ok else 'LOW'}")
     if not ok:
@@ -136,7 +136,6 @@ async def full_setup(skip_sensor_cal:bool=False,
     odo=await init_odometry(x,y,h)
     motor_pair.pair(motor_pair.PAIR_1,C.PORT_L,C.PORT_R)
     await align_and_reset(odo,x,y,h)
-    import config as C
     print(f"{C.CLR_GRN}=== setup done -- ready ==={C.CLR_RST}\n")
     _hub.sound.beep(1000, 100)
     await runloop.sleep_ms(100)
