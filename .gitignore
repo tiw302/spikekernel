@@ -29,10 +29,6 @@ logs.csv
 temp/
 
 # media (as requested)
-*.png
-*.jpg
-*.jpeg
 *.gif
 *.svg
-*.mp4
 *.iso
