@@ -97,17 +97,16 @@ CTE_KPH        = 2.5
 CTE_KDR        = 0.8
 
 # turn -- pd
-# เลี้ยว -- ตัวควบคุม PD
-TURN_KP        = 10.0
-TURN_KD        = 3.5
+# เลี้ยว -- ตัวควบคุม PD (Tuned for Hub 3)
+TURN_KP        = 8.0          # ลด P ลงนิดหน่อยเพื่อไม่ให้กระชาก
+TURN_KD        = 5.0          # เพิ่ม D เพื่อให้เบรกนิ่งขึ้น
 TURN_ERR_TOL   = 0.7          # deg (ความคลาดเคลื่อนที่ยอมรับได้)
 TURN_RATE_TOL  = 2.5          # deg/s (ความเร็วในการหมุนที่ยอมรับได้)
 TURN_SETTLE    = 15           # loops (จำนวนลูปเพื่อยืนยันการนิ่ง)
 
-# pivot / swing turn
-# เลี้ยวแบบล้อเดียว / เลี้ยวแบบหมุน
-PIVOT_KP       = 8.0
-PIVOT_KD       = 2.5
+# เลี้ยวแบบล้อเดียว / เลี้ยวแบบหมุน (Tuned for Hub 3)
+PIVOT_KP       = 6.5
+PIVOT_KD       = 3.5
 
 # velocity pid (low level)
 # PID ควบคุมความเร็ว (ระดับต่ำ)
@@ -212,14 +211,13 @@ WA_STALL       = 15
 REFLECT_WHITE  = 85
 REFLECT_BLACK  = 10
 
-# line follow gains (pick set matching speed)
-# Gain การเดินตามเส้น (เลือกชุดที่ตรงกับความเร็ว)
-LF_KP_LOW      = 20.0         # ~200 power
-LF_KD_LOW      = 5.0
-LF_KP_MED      = 30.0         # ~350 power
-LF_KD_MED      = 8.0
-LF_KP_HIGH     = 40.0         # ~500 power
-LF_KD_HIGH     = 12.0
+# Gain การเดินตามเส้น (Tuned for Hub 3 - เซ็นเซอร์ไวขึ้น)
+LF_KP_LOW      = 15.0         # ~200 power
+LF_KD_LOW      = 8.0
+LF_KP_MED      = 25.0         # ~350 power
+LF_KD_MED      = 12.0
+LF_KP_HIGH     = 35.0         # ~500 power
+LF_KD_HIGH     = 18.0
 LF_KGYRO       = 4.0
 
 # junction
