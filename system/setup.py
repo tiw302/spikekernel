@@ -20,7 +20,6 @@ import pid_lib    as P
 import sensor_lib as S
 import runloop, time
 import hub as _hub
-from hub import motion_sensor
 import motor_pair
 import config as C
 
@@ -54,10 +53,10 @@ async def check_battery(warn_only:bool=False)->bool:
 
 async def gyro_init(preheat_ms:int=5000, samples:int=300)->float:
     print("[setup] gyro init -- DO NOT MOVE")
-    _hub.light_matrix.show_image(_hub.light_matrix.IMAGE_SQUARE) # Show warning icon
+    _hub.light_matrix.write("!") # Show warning icon
     bias=await P.calibrate_gyro(preheat_ms=preheat_ms,samples=samples)
     _hub.sound.beep(880, 200) # Success beep
-    _hub.light_matrix.off()
+    _hub.light_matrix.clear()
     return bias
 
 # ███████ ███████ ███    ██ ███████  ██████  ██████  
@@ -68,18 +67,24 @@ async def gyro_init(preheat_ms:int=5000, samples:int=300)->float:
 #
 # >>sensors
 
-async def sensor_setup(auto:bool=False)->None:
+async def sensor_setup(auto:bool=False, load_saved:bool=True)->None:
     """
     auto=False -- manual: place on white 3s, then black 3s
     auto=True  -- sweep: drive slowly over a line
     """
+    if load_saved and S.CAL.load():
+        print(f"{C.CLR_GRN}[setup]{C.CLR_RST} calibration loaded from file")
+        S.sensor_report()
+        return
+
     if auto:
         await S.CAL.sweep(C.PORT_C1); await S.CAL.sweep(C.PORT_C2)
     else:
-        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on WHITE (3s)..."); time.sleep_ms(3000)
+        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on WHITE (3s)..."); await runloop.sleep_ms(3000)
         S.CAL.white(C.PORT_C1,n=30); S.CAL.white(C.PORT_C2,n=30)
-        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on BLACK (3s)..."); time.sleep_ms(3000)
+        print(f"{C.CLR_BLU}[setup]{C.CLR_RST} place both sensors on BLACK (3s)..."); await runloop.sleep_ms(3000)
         S.CAL.black(C.PORT_C1,n=30); S.CAL.black(C.PORT_C2,n=30)
+    S.CAL.save()
     S.sensor_report()
 
 #  ██████  ██████   ██████  
