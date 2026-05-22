@@ -45,18 +45,20 @@ def cname(c): return _CN.get(c,"?")
 #
 # >>raw reads
 
+import color_sensor
+
 def reflect(p=None):
-    try: d=_hub.port[p or C.PORT_C1].device.get(); return int(d[0]) if d else -1
+    try: return color_sensor.reflection(p or C.PORT_C1)
     except: return -1
 
 def color(p=None):
-    try: d=_hub.port[p or C.PORT_C1].device.get(); return int(d[1]) if d and len(d)>1 else -1
+    try: return color_sensor.color(p or C.PORT_C1)
     except: return -1
 
 def rgb(p=None):
-    try:
-        d=_hub.port[p or C.PORT_C1].device.get()
-        return (int(d[2]),int(d[3]),int(d[4]),int(d[5])) if d and len(d)>=6 else (0,0,0,0)
+    try: 
+        c = color_sensor.rgbi(p or C.PORT_C1)
+        return (c[0], c[1], c[2], c[3]) if c else (0,0,0,0)
     except: return 0,0,0,0
 
 
@@ -96,11 +98,45 @@ class SensorCal:
         while time.ticks_diff(time.ticks_ms(),t0)<ms:
             r=reflect(p)
             if r>=0: buf.append(r)
-            time.sleep_ms(10)
+            await runloop.sleep_ms(10)
         motor_pair.stop(motor_pair.PAIR_1)
         if len(buf)<5: return
         self._w[p]=max(buf); self._b[p]=min(buf); self._upd(p)
         print(f"[cal] w={self._w[p]} b={self._b[p]} mid={self._m[p]}")
+    def save(self, filename="cal.json"):
+        import json
+        data = {
+            "w": {str(k): v for k, v in self._w.items()},
+            "b": {str(k): v for k, v in self._b.items()}
+        }
+        try:
+            with open(filename, "w") as f:
+                json.dump(data, f)
+            print(f"[cal] saved to {filename}")
+        except Exception as e:
+            print(f"[cal] save failed: {e}")
+    def load(self, filename="cal.json"):
+        import json
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+            # Ports are stored as strings, we need to handle them carefully.
+            # But C.PORT_C1 might be an integer or object depending on API version.
+            # In SPIKE 3, port constants might be integer IDs or port objects.
+            # A safer way is just to load into temporary vars, but we'll try direct access first
+            # assuming keys match stringified port IDs.
+            for k_str, v in data.get("w", {}).items():
+                for p in [C.PORT_C1, C.PORT_C2]:
+                    if str(p) == k_str: self._w[p] = v
+            for k_str, v in data.get("b", {}).items():
+                for p in [C.PORT_C1, C.PORT_C2]:
+                    if str(p) == k_str: self._b[p] = v
+            self._upd(C.PORT_C1); self._upd(C.PORT_C2)
+            print(f"[cal] loaded from {filename}")
+            return True
+        except Exception as e:
+            print(f"[cal] load failed: {e}")
+            return False
 
 CAL=SensorCal()
 
@@ -196,7 +232,7 @@ async def lf_gyro(dist_cm=50.0, vmax=500, Kp=None, Kd=None, Kg=None,
     while time.ticks_diff(dl,time.ticks_ms())>0:
         if (motor.relative_position(C.PORT_L)+motor.relative_position(C.PORT_R))>>1>=tc: break
         now=time.ticks_ms(); dth=max(1,time.ticks_diff(now,ht))/1000.0; ht=now
-        gz,_,_=_hub.motion.gyroscope(); hc+=(gz-bias)*dth
+        _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=(gz-bias)*dth
         r=reflect(p); r=CAL.mid(p) if r<0 else r; lv=le.single(r,p)
         he=-hc
         while he>180: he-=360
@@ -248,7 +284,7 @@ async def lf_dual_gyro(dist_cm=50.0, vmax=600, Kp=None, Kd=None,
     while time.ticks_diff(dl,time.ticks_ms())>0:
         if (motor.relative_position(C.PORT_L)+motor.relative_position(C.PORT_R))>>1>=tc: break
         now=time.ticks_ms(); dth=max(1,time.ticks_diff(now,ht))/1000.0; ht=now
-        gz,_,_=_hub.motion.gyroscope(); hc+=(gz-bias)*dth
+        _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=(gz-bias)*dth
         rL=reflect(C.PORT_C1); rR=reflect(C.PORT_C2)
         rL=CAL.mid(C.PORT_C1) if rL<0 else rL; rR=CAL.mid(C.PORT_C2) if rR<0 else rR
         lv=le.dual(rL,rR)
@@ -331,7 +367,7 @@ async def lf_n_junctions(n: int, vmax: int = 400,
 
         if 'gyro' in mode:
             dth=max(1,time.ticks_diff(now,ht))/1000.0; ht=now
-            gz,_,_=_hub.motion.gyroscope(); hc+=(gz-bias)*dth
+            _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=(gz-bias)*dth
             he=-hc
             while he>180: he-=360
             while he<-180: he+=360
@@ -373,7 +409,7 @@ async def lf_until_color(target_color: int, vmax: int = 400,
         now=time.ticks_ms()
         if 'gyro' in mode:
             dth=max(1,time.ticks_diff(now,ht))/1000.0; ht=now
-            gz,_,_=_hub.motion.gyroscope(); hc+=(gz-bias)*dth
+            _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=(gz-bias)*dth
             he=-hc
             while he>180: he-=360
             while he<-180: he+=360
@@ -494,7 +530,7 @@ async def until_color(target, vmax=400, mode="gyro",
         if color(C.PORT_C1)==target or color(C.PORT_C2)==target:
             motor_pair.stop(motor_pair.PAIR_1); print(f"[until_color] found"); return True
         now=time.ticks_ms(); dt=max(1,time.ticks_diff(now,ht))/1000.0; ht=now
-        gz,_,_=_hub.motion.gyroscope(); hc+=gz*dt
+        _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=gz*dt
         if mode=="line":
             r=reflect(C.PORT_C1); err=le.single(r,C.PORT_C1) if r>=0 else 0.0
             de=(err-pe)/dt; pe=err; c=35.0*err+8.0*de
@@ -522,7 +558,7 @@ async def until_line(vmax=400, heading=0.0, thr=None,
             lms=time.ticks_diff(now,lst)
             if lms>=confirm_ms: break
         else: lms=0
-        gz,_,_=_hub.motion.gyroscope(); hc+=gz*dt
+        _,_,gz=_hub.motion.angular_velocity(); gz/=10.0; hc+=gz*dt
         err=heading-hc; I=max(-60,min(60,I+err*dt))
         de=(err-pe)/dt; pe=err; c=3.5*err+0.01*I+2.0*de
         motor_pair.move_tank(motor_pair.PAIR_1,max(-1000,min(1000,int(vmax-c))),max(-1000,min(1000,int(vmax+c))))
@@ -594,7 +630,7 @@ async def find_line_center(spd=150,p=None)->float:
         if r>=0:
             if not on and r<thr-5: on=True; lead=cnt
             elif on and r>thr+5: trail=cnt; break
-        time.sleep_ms(8)
+        await runloop.sleep_ms(8)
     motor_pair.stop(motor_pair.PAIR_1)
     if lead is not None and trail is not None:
         cm=(lead+trail)*0.5*C.CM_PER_COUNT; w=(trail-lead)*C.CM_PER_COUNT
