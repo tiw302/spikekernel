@@ -87,16 +87,43 @@ DRIVE_KD = 0.05
 
 ## API Reference
 
-### Movement Primitives (`pid_lib.py`)
+### 1. Drive & Navigation (`pid_lib.py`)
 
 | Function | Parameters | Description |
 |---|---|---|
-| `straight` | `odo, dist, speed` | Move straight using Odometry feedback and S-Curve profiles. |
-| `turn` | `odo, heading` | Rotate to a specific absolute heading using Gyro PID. |
-| `arc` | `odo, r, angle` | Perform a smooth arc turn with a defined radius. |
-| `follow_line` | `odo, dist, kp, kd` | Follow a line using dual sensors with PID correction. |
+| `straight` | `odo, dist_cm, vmax` | Move straight using Gyro and Odometry feedback with S-Curve profiles. |
+| `turn` | `odo, target_h, vmax` | Spin turn to an absolute heading using Gyro PID. |
+| `pivot_turn` | `odo, target_h, side` | Pivot turn on one wheel (`side='left'` or `'right'`). |
+| `swing_turn` | `odo, target_h, outer_speed, inner_ratio` | Smooth curve turn with differential wheel speeds. |
+| `arc` | `odo, radius_cm, angle_deg, vmax` | Drive along a geometric arc of a defined radius and angle. |
+| `goto_xy` | `odo, tx, ty, vmax` | Drive directly to an absolute target coordinate (X, Y) on the field. |
+| `follow_path` | `odo, waypoints, default_vmax, smooth` | Smooth path-following using Pure Pursuit (highly smooth). |
+| `wall_align` | *None* | Force-align against a wall and reset Gyro/Odometry. |
 
-### Task Management (`kernel.py` / `pid_lib.py`)
+### 2. Line Tracking & Perception (`pid_lib.py` & `sensor_lib.py`)
+
+| Function | Module | Parameters | Description |
+|---|---|---|---|
+| `track_line` | `pid_lib` | `odo, dist_cm, vmax, sensor_port, edge` | Line follow using 1 sensor (C1/C2) while updating Odometry (X,Y) in real-time. |
+| `lf_pd` | `sensor_lib` | `dist_cm, vmax, p` | Simple 1-sensor line follower (PD) by distance. |
+| `lf_gyro` | `sensor_lib` | `dist_cm, vmax, p` | 1-sensor line follower with Gyro assist for speed stabilization. |
+| `lf_dual` | `sensor_lib` | `dist_cm, vmax` | 2-sensor line follower (Centroid) by distance. |
+| `lf_dual_gyro`| `sensor_lib` | `dist_cm, vmax` | 2-sensor line follower + Gyro assist (fastest/most stable). |
+| `lf_n_junctions`| `sensor_lib` | `n, vmax, mode` | Follow line and stop exactly at the N-th junction. |
+| `until_line` | `sensor_lib` | `vmax, heading` | Drive at a specific heading until a line is detected. |
+| `center_on_line`| `sensor_lib` | `speed, p` | Fine adjustments to center on a line edge. |
+
+### 3. Arm & Attachment Control (`pid_lib.py`)
+
+| Function | Parameters | Description |
+|---|---|---|
+| `motor_home` | `port, speed` | Home attachment arm by stalling against physical stop, setting position to 0. |
+| `motor_to_angle` | `port, target_deg, speed` | Move arm to absolute angle (e.g. 45 degrees) using PID. |
+| `motor_run_until_stall` | `port, speed` | Run motor until stall (gripping/pressing). |
+| `motor_run_time` | `port, speed, duration_ms` | Run motor for a specific time. |
+| `straight_with_motor` | `odo, dist_cm, vmax, arm_port, arm_target_deg` | Run straight drive and move arm simultaneously. |
+
+### 4. Task Management (`kernel.py`)
 
 | Function | Usage | Description |
 |---|---|---|
