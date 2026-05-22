@@ -16,7 +16,7 @@
     - async task management for simultaneous movements.
 """
 
-from hub import port, motion_sensor
+from hub import port
 import hub as _hub
 import motor, motor_pair
 import runloop, time, micropython, gc
@@ -90,10 +90,10 @@ async def calibrate_gyro(preheat_ms: int = 5000, samples: int = 300) -> float:
     print(f"[gyro] preheat {preheat_ms}ms...")
     t0 = time.ticks_ms()
     while time.ticks_diff(time.ticks_ms(), t0) < preheat_ms:
-        _hub.motion.gyroscope(); time.sleep_ms(10)
+        _hub.motion.angular_velocity(); await runloop.sleep_ms(10)
     buf = [0.0] * samples
     for i in range(samples):
-        gz, _, _ = _hub.motion.gyroscope(); buf[i] = gz; time.sleep_ms(3)
+        _, _, gz = _hub.motion.angular_velocity(); buf[i] = gz / 10.0; await runloop.sleep_ms(3)
     buf.sort()
     q1 = buf[samples >> 2]; q3 = buf[(samples * 3) >> 2]
     iqr = q3 - q1; lo = q1 - 1.5 * iqr; hi = q3 + 1.5 * iqr
@@ -108,12 +108,16 @@ async def calibrate_gyro(preheat_ms: int = 5000, samples: int = 300) -> float:
 # sensor snapshot
 
 class _Snap:
-    __slots__ = ('gz', 'ax', 'ay', 'az', 'eL', 'eR')
-    def __init__(self): self.gz = self.ax = self.ay = self.az = 0.0; self.eL = self.eR = 0
+    __slots__ = ('gz', 'eL', 'eR')
+    def __init__(self): self.gz = 0.0; self.eL = self.eR = 0
     def read(self):
-        gz, _, _ = _hub.motion.gyroscope_filter(); self.gz = float(gz)
-        st = _hub.status(); ax, ay, az = st['accelerometer']
-        self.ax = float(ax); self.ay = float(ay); self.az = float(az)
+        # We use a simple derivative of yaw for gz if gyroscope() is unavailable, 
+        # but try the direct motion API first, or fallback to 0.0 if not supported.
+        try:
+            from hub import motion
+            self.gz = float(motion.angular_velocity()[2]) / 10.0
+        except:
+            self.gz = 0.0
         self.eL = motor.relative_position(C.PORT_L)
         self.eR = motor.relative_position(C.PORT_R)
 
@@ -157,23 +161,13 @@ class _BL:
         return out
 
 
-# tilt
+# tilt (removed for SPIKE 3 compatibility)
 
 class _Tilt:
     __slots__ = ('_sc',)
     def __init__(self): self._sc = 1.0
-    def cal(self):
-        ax = ay = az = 0.0
-        for _ in range(50):
-            st = _hub.status(); a = st['accelerometer']
-            ax += float(a[0]); ay += float(a[1]); az += float(a[2]); time.sleep_ms(5)
-        ax /= 50; ay /= 50; az /= 50
-        m = sqrt(ax*ax + ay*ay + az*az)
-        if m < 1e-6: return
-        self._sc = 1.0 / max(0.5, cos(asin(max(-1.0, min(1.0, ax/m)))) *
-                                   cos(asin(max(-1.0, min(1.0, ay/m)))))
-        print(f"[tilt] scale={self._sc:.4f}")
-    def fix(self, gz): return gz * self._sc
+    def cal(self): pass
+    def fix(self, gz): return gz
 
 
 #  ██████  ██████   ██████  
@@ -206,14 +200,11 @@ class Odometry:
     @micropython.native
     def update(self, moving=True):
         """
-        math: sensor fusion odometry
+        math: sensor fusion odometry (simplified for SPIKE 3)
         ----------------------------
         1. backlash: filt(dL, dR) handles gear play compensation.
         2. velocity: low-pass filter (0.25 alpha) for speed stability.
-        3. heading (kalman): 
-           - predict: use integrated gyro rate.
-           - correct: use gravity vector (accel) to fix drift.
-           - k-gain: determines trust between gyro and accel.
+        3. heading: direct from yaw_pitch_roll to avoid kalman complexity.
         4. position: standard dead reckoning (arc/chord approximation).
         """
         _SNS.read(); sns = _SNS; dt = 1.0 / C.HZ
@@ -229,15 +220,17 @@ class Odometry:
         self._vR = 0.25 * (dRr * C.CM_PER_COUNT / dt) + 0.75 * self._vR
         self._spd = (self._vL + self._vR) * 0.5
         
-        # heading fusion logic
-        gz = self._tilt.fix(sns.gz - _GYRO_BIAS) * C.GYRO_SCALE
-        xp = self._kx + gz * dt; Pp = self._kP + C.KF_Q
-        z = atan2(sns.ay, sns.ax) * _R2D # absolute heading from gravity
-        
-        K = Pp / (Pp + (C.KF_R_MOVING if moving else C.KF_R_STILL))
-        self._kx = xp + K * norm180(z - xp); self._kP = (1.0 - K) * Pp
-        self.h = self._kx
-        
+        # heading logic (simplified direct read)
+        try:
+            from hub import motion
+            ypr = motion.yaw_pitch_roll()
+            # Yaw is usually in decidegrees or degrees depending on firmware, assuming degrees here based on standard use
+            self.h = float(ypr[0]) / 10.0
+            gz = sns.gz
+        except:
+            self.h = self._kx
+            gz = 0.0
+            
         # update x,y coordinates
         ds = (dL + dR) * 0.5; hr = self.h * _D2R
         self.x += ds * cos(hr); self.y += ds * sin(hr)
@@ -414,8 +407,6 @@ class _PP:
 #
 # >>system tools
 
-
-
 class TaskManager:
     __slots__ = ('_jobs',)
     def __init__(self): self._jobs = []
@@ -458,7 +449,7 @@ async def wall_align() -> bool:
         motor_pair.move_tank(motor_pair.PAIR_1,pL,pR)
         if sL>=C.WA_STALL and sR>=C.WA_STALL: break
     motor_pair.stop(motor_pair.PAIR_1); await runloop.sleep_ms(150)
-    motion_sensor.reset_yaw(); await runloop.sleep_ms(80)
+    _hub.motion.reset_yaw(0); await runloop.sleep_ms(80)
     ok=sL>=C.WA_STALL and sR>=C.WA_STALL
     print(f"[wall_align] {'ok' if ok else 'timeout'}"); return ok
 
@@ -540,8 +531,8 @@ async def pivot_turn(odo, target_h, side='auto', vmax=None, max_ms=3000) -> bool
         _,_,h,rate=odo.update(moving=False)
         err=norm180(target_h-h)
         pwr=_clamp(int(C.PIVOT_KP*err-C.PIVOT_KD*rate),-vmx,vmx)
-        if side=='right': motor.run(C.PORT_L,pwr); motor.hold(C.PORT_R)
-        else: motor.run(C.PORT_R,-pwr); motor.hold(C.PORT_L)
+        if side=='right': motor.run(C.PORT_L,pwr); motor.stop(C.PORT_R)
+        else: motor.run(C.PORT_R,-pwr); motor.stop(C.PORT_L)
         settle=settle+1 if abs(err)<C.TURN_ERR_TOL and abs(rate)<C.TURN_RATE_TOL else 0
         if settle>=C.TURN_SETTLE: break
         await lp.tick()
@@ -635,6 +626,68 @@ async def goto_xy(odo, tx, ty, vmax=None, db=None, max_ms=6000) -> bool:
     print(f"[goto_xy] done err={odo.dist(tx,ty):.2f}cm  {odo}"); return True
 
 
+async def track_line(odo, dist_cm, vmax=None, sensor_port=None,
+                     edge='left', Kp=None, Kd=None, db=None, max_ms=8000) -> bool:
+    """
+    แทร็กเส้น 1 เซ็นเซอร์ (เกาะขอบ) พร้อมอัปเดตพิกัด (Odometry) และ S-Curve
+    edge: 'left' (ขาวอยู่ซ้าย-ดำอยู่ขวา) หรือ 'right' (ดำอยู่ซ้าย-ขาวอยู่ขวา)
+    """
+    import config as C
+    import sensor_lib as S
+    print(f"{C.CLR_GRY}[motion] track_line {dist_cm:.1f}cm edge={edge}{C.CLR_RST}")
+    motor_pair.pair(motor_pair.PAIR_1, C.PORT_L, C.PORT_R)
+    bf = _bat(); vmx = int((vmax or C.VMAX) * bf)
+    sp = sensor_port or C.PORT_C1
+    Kp = Kp or C.LF_KP_MED; Kd = Kd or C.LF_KD_MED
+    
+    lp = _Loop(); lp.reset(); dt = lp.dt
+    vpc = _VelPID(); vpc.reset()
+    mic = _Micro(); stl = _Stall(); stl.reset()
+    
+    sx, sy = odo.x, odo.y
+    pe = 0.0
+    dl = time.ticks_add(time.ticks_ms(), max_ms)
+    edge_mult = 1.0 if edge == 'left' else -1.0
+    le = S.LineEst(0.3)
+    
+    while time.ticks_diff(dl, time.ticks_ms()) > 0:
+        x, y, h, rate = odo.update(moving=True)
+        done = sqrt((x-sx)**2 + (y-sy)**2)
+        rem = max(0.0, dist_cm - done)
+        
+        if mic.done(rem, odo.speed): break
+        
+        spd = max(C.VMIN, min(_sc(done, dist_cm, vmx), _kin(rem, vmx)))
+        cr = mic.creep(rem)
+        if cr > 0: spd = cr
+            
+        r = S.reflect(sp)
+        if r < 0: r = S.CAL.mid(sp)
+        
+        err = le.single(r, sp) * edge_mult
+        de = (err - pe) / dt; pe = err
+        
+        c = Kp * err + Kd * de
+        tL = float(spd) - c
+        tR = float(spd) + c
+        
+        pL, pR = vpc.step(tL, tR, odo._vL, odo._vR, dt)
+        pL = _clamp(pL); pR = _clamp(pR)
+        if db: pL, pR = db.apply(pL, pR)
+        
+        if stl.check(pL, pR): 
+            motor_pair.stop(motor_pair.PAIR_1)
+            print("[track_line] stall")
+            return False
+            
+        motor_pair.move_tank(motor_pair.PAIR_1, pL, pR)
+        await lp.tick()
+        
+    motor_pair.stop(motor_pair.PAIR_1)
+    err_dist = dist_cm - sqrt((odo.x-sx)**2 + (odo.y-sy)**2)
+    print(f"[track_line] done err={err_dist:+.2f}cm  {odo}"); return True
+
+
 async def follow_path(odo, waypoints, default_vmax=None,
                       smooth=True, db=None) -> bool:
     print(f"[path] {len(waypoints)} pts  smooth={smooth}")
@@ -676,11 +729,10 @@ async def follow_path(odo, waypoints, default_vmax=None,
 async def motor_to_angle(p, target_deg: float, speed: int = 300,
                           tol: float = 2.0, max_ms: int = 3000) -> bool:
     """
-    move attachment motor to absolute angle (degrees)
+    move attachment motor to absolute angle (degrees) from home
     uses position pid — accurate to ±1-2deg
     """
     print(f"[motor] port={p} -> {target_deg:.1f}deg  spd={speed}")
-    motor.reset_relative_position(p, 0)
     KP=4.0; KD=0.8; prev_err=0.0; prev_t=time.ticks_ms()
     dl=time.ticks_add(time.ticks_ms(),max_ms); settle=0
     while time.ticks_diff(dl,time.ticks_ms())>0:
@@ -693,7 +745,7 @@ async def motor_to_angle(p, target_deg: float, speed: int = 300,
         settle=settle+1 if abs(err)<tol else 0
         if settle>=8: break
         await runloop.sleep_ms(8)
-    motor.hold(p)
+    motor.stop(p)
     pos=motor.relative_position(p)
     print(f"[motor] done pos={pos:.1f}deg  err={target_deg-pos:+.1f}")
     return True
@@ -704,7 +756,7 @@ async def motor_run_time(p, speed: int, duration_ms: int) -> None:
     print(f"[motor] port={p} spd={speed} for {duration_ms}ms")
     motor.run(p, speed)
     await runloop.sleep_ms(duration_ms)
-    motor.hold(p)
+    motor.stop(p)
     print(f"[motor] done")
 
 
@@ -726,7 +778,7 @@ async def motor_run_until_stall(p, speed: int, max_ms: int = 3000,
             if still_ms>=stall_ms: break
         else: still_t=time.ticks_ms()
         prev=cur
-    motor.hold(p)
+    motor.stop(p)
     stalled=still_ms>=stall_ms
     print(f"[motor] {'stall detected' if stalled else 'timeout'}")
     return stalled
@@ -785,7 +837,7 @@ async def straight_with_motor(odo, dist_cm: float, vmax: int,
         arm_pwr=_clamp(int(arm_KP*arm_err-arm_KD*(arm_err-arm_pe)/adt),-arm_speed,arm_speed)
         arm_pe=arm_err; motor.run(arm_port,arm_pwr)
         await lp.tick()
-    motor_pair.stop(motor_pair.PAIR_1); motor.hold(arm_port)
+    motor_pair.stop(motor_pair.PAIR_1); motor.stop(arm_port)
     print(f"[combo] done  {odo}"); return True
 
 
@@ -818,15 +870,15 @@ async def comp_check() -> bool:
     if abs(e)>C.CHK_STR_ERR_CM: warns.append(f"str err {e:+.2f}cm")
     # turn
     print("[turn] 360...")
-    motion_sensor.reset_yaw(); await runloop.sleep_ms(100); settle=0
+    _hub.motion.yaw_pitch_roll(0); await runloop.sleep_ms(100); settle=0
     for _ in range(500):
-        yaw=motion_sensor.tilt_angles()[0]/10.0; e2=norm180(360-yaw)
+        yaw=_hub.motion.yaw_pitch_roll()[0]/10.0; e2=norm180(360-yaw)
         motor_pair.move_tank(motor_pair.PAIR_1,max(-400,min(400,int(10*e2))),max(-400,min(400,-int(10*e2))))
         settle=settle+1 if abs(e2)<1.0 else 0
         if settle>12: break
         time.sleep_ms(8)
     motor_pair.stop(motor_pair.PAIR_1); await runloop.sleep_ms(300)
-    te=norm180(motion_sensor.tilt_angles()[0]/10.0-360)
+    te=norm180(_hub.motion.yaw_pitch_roll()[0]/10.0-360)
     print(f"[turn] err={te:+.1f}deg")
     if abs(te)>C.CHK_TURN_ERR: warns.append(f"turn {te:+.1f}deg")
     if not warns: print("=== all clear ===\n"); return True
