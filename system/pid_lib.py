@@ -334,7 +334,8 @@ class _CTE:
         cte = (rx-self._sx)*(-self._uy) + (ry-self._sy)*self._ux
         self._I = max(-60.0, min(60.0, self._I + cte*dt))
         he = norm180(atan2(self._uy, self._ux)*_R2D - h)
-        return cte*C.CTE_KP + self._I*C.CTE_KI + he*C.CTE_KPH - rate*C.CTE_KDR
+        # กลับเครื่องหมาย cte เนื่องจากถ้า cte > 0 (หุ่นอยู่ซ้าย) ต้องหักเลี้ยวขวา (corr ติดลบ)
+        return -cte*C.CTE_KP - self._I*C.CTE_KI + he*C.CTE_KPH - rate*C.CTE_KDR
 
 class _Micro:
     __slots__ = ()
@@ -508,7 +509,8 @@ async def turn(odo, target_h, vmax=None, max_ms=3000) -> bool:
         _,_,h,rate=odo.update(moving=False)
         err=norm180(target_h-h)
         out=_clamp(int(C.TURN_KP*err-C.TURN_KD*rate),-vmx,vmx)
-        motor_pair.move_tank(motor_pair.PAIR_1,out,-out)
+        # สลับเป็น -out, out เพื่อให้เมื่อ err > 0 (เป้าหมายอยู่ซ้าย) หุ่นเลี้ยวซ้าย
+        motor_pair.move_tank(motor_pair.PAIR_1,-out,out)
         settle=settle+1 if abs(err)<C.TURN_ERR_TOL and abs(rate)<C.TURN_RATE_TOL else 0
         if settle>=C.TURN_SETTLE: break
         await lp.tick()
@@ -530,9 +532,10 @@ async def pivot_turn(odo, target_h, side='auto', vmax=None, max_ms=3000) -> bool
     while time.ticks_diff(dl,time.ticks_ms())>0:
         _,_,h,rate=odo.update(moving=False)
         err=norm180(target_h-h)
-        pwr=_clamp(int(C.PIVOT_KP*err-C.PIVOT_KD*rate),-vmx,vmx)
-        if side=='right': motor.run(C.PORT_L,pwr); motor.stop(C.PORT_R)
-        else: motor.run(C.PORT_R,-pwr); motor.stop(C.PORT_L)
+        pwr=_clamp(int(C.PIVOT_KP*abs(err)-C.PIVOT_KD*abs(rate)),0,vmx)
+        # ใช้ motor_pair ขยับล้อเดียวเพื่อเลี้ยวให้ถูกทิศ
+        if side=='right': motor_pair.move_tank(motor_pair.PAIR_1, 0, pwr) # ล้อขวาเดินหน้า = เลี้ยวซ้าย
+        else: motor_pair.move_tank(motor_pair.PAIR_1, pwr, 0) # ล้อซ้ายเดินหน้า = เลี้ยวขวา
         settle=settle+1 if abs(err)<C.TURN_ERR_TOL and abs(rate)<C.TURN_RATE_TOL else 0
         if settle>=C.TURN_SETTLE: break
         await lp.tick()
