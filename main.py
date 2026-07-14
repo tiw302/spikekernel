@@ -22,7 +22,7 @@
     port B = left color sensor
     port C = right color sensor
 
-    note: spike prime / inventor hub has a built-in imu (gyroscope + accelerometer).
+    NOTE: spike prime / inventor hub has a built-in imu (gyroscope + accelerometer).
           hub.imu.heading() gives absolute yaw — no external gyro sensor needed!
           hub.imu.angular_velocity() gives real-time rotation rate.
 
@@ -617,7 +617,7 @@ class Robot:
             self.log("WARNING: Battery low!")
 
     def log(self, text):
-        # * note: to reduce cpu load during a real match, uncomment 'pass' and comment out 'print'
+        # * NOTE: to reduce cpu load during a real match, uncomment 'pass' and comment out 'print'
         # *       เพื่อลดภาระ cpu ตอนแข่งจริง (เซฟแบต/ลดแลค) ให้เอา # หน้าคำว่า pass ออก และใส่ # หน้า print แทน
         # pass
         print(f"[ROBOT] {text}")
@@ -643,7 +643,7 @@ if __name__ == "__main__":
     wait(100)
 
     #   * ===============================================
-    #   *  cheat sheet: ตัวอย่างการเรียกใช้ทุกฟังก์ชัน
+    #   *  CHEAT SHEET: ตัวอย่างการเรียกใช้ทุกฟังก์ชัน
     #   * ===============================================
         # 1. การเคลื่อนที่พื้นฐาน (basic movements)
         # robot.move_straight(50)                       # วิ่งตรง 50 ซม. ด้วย gyro (move straight 50 cm)
@@ -682,7 +682,7 @@ if __name__ == "__main__":
         # robot.calibrate_sensors()                     # สั่งคาลิเบรตเซนเซอร์บนแมตแบบสดๆ (calibrate sensors on the mat)
 
     #   * ===============================================
-    #   *  run: รันตรงนี้
+    #   *  RUN: รันตรงนี้
     #   * ===============================================
 
     robot.reset_heading() # ← zero the gyro before every run!
