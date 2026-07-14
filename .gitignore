@@ -9,26 +9,26 @@ __pycache__/
 logs.csv
 *.log
 
-# vscode
+# ides and editors
 .vscode/
-*.code-workspace
-
-# neovim / vim
+.idea/
+*.swp
+*.swo
 [._]*.s[a-v][a-z]
 [._]*.sw[a-p]
 *.un~
 .netrwhist
 *~
 
-# antigravity / gemini
-.gemini/
-.antigravity/
-
 # hardware / aria
 *.aria2
 temp/
 
-# media (as requested)
-*.gif
-*.svg
-*.iso
+# os generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
