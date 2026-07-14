@@ -617,8 +617,8 @@ class Robot:
             self.log("WARNING: Battery low!")
 
     def log(self, text):
-        # * NOTE: to reduce cpu load during a real match, uncomment 'pass' and comment out 'print'
-        # *       เพื่อลดภาระ cpu ตอนแข่งจริง (เซฟแบต/ลดแลค) ให้เอา # หน้าคำว่า pass ออก และใส่ # หน้า print แทน
+        # * NOTE: to reduce CPU load during a real match, uncomment 'pass' and comment out 'print'
+        # *       เพื่อลดภาระ CPU ตอนแข่งจริง (เซฟแบต/ลดแลค) ให้เอา # หน้าคำว่า pass ออก และใส่ # หน้า print แทน
         # pass
         print(f"[ROBOT] {text}")
 
