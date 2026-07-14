@@ -14,7 +14,7 @@
 #         '--------'----------'--------'
 
 """
-* debug module & menu system:                                        [ENGLISH]
+* debug module & menu system:                                        [english]
     used for testing sensors and checking hardware before a match.
     features a spike button menu to select the operating mode without restarting.
     
@@ -25,9 +25,9 @@
 
 .___________________________________________________________________________________________.
 
-* ระบบตรวจสอบและตั้งค่าก่อนแข่ง:                                           [THAI]
+* ระบบตรวจสอบและตั้งค่าก่อนแข่ง:                                           [thai]
     ใช้สำหรับเทสเซ็นเซอร์และเช็คระบบฮาร์ดแวร์ก่อนลงสนามจริง
-    มีระบบเมนูให้กดปุ่มบน SPIKE เพื่อเลือกโหมดทำงานได้ทันที
+    มีระบบเมนูให้กดปุ่มบน spike เพื่อเลือกโหมดทำงานได้ทันที
     
     [ปุ่มซ้าย]   = อ่านค่าแสงจากเซ็นเซอร์ (debug sensors)
     [ปุ่มกลาง]  = เข้าโหมดคาลิเบรต (calibrate sensors)
@@ -94,7 +94,7 @@ if __name__ == "__main__":
             sr_ref = robot.sensor_r.reflection
             
             while True:
-                # check exit button FIRST before any wait
+                # check exit button first before any wait
                 if Button.BLUETOOTH in hub.buttons.pressed():
                     print("[ROBOT] exiting debug mode.")
                     break
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             hub.speaker.beep(800, 200)
             # redraw menu after mode finishes
             draw_menu()
-            # debounce: wait for bt to be released AFTER beep
+            # debounce: wait for bt to be released after beep
             while Button.BLUETOOTH in hub.buttons.pressed():
                 wait(10)
         
@@ -202,7 +202,7 @@ if __name__ == "__main__":
                 
             print("[ROBOT] mode: system check (press BLUETOOTH to exit)")
             while True:
-                # check exit button FIRST before reading sensors
+                # check exit button first before reading sensors
                 if Button.BLUETOOTH in hub.buttons.pressed():
                     hub.speaker.beep(800, 200)
                     break
@@ -224,7 +224,7 @@ if __name__ == "__main__":
                 
             # redraw menu after mode finishes
             draw_menu()
-            # debounce: wait for bt to be released AFTER beep
+            # debounce: wait for bt to be released after beep
             while Button.BLUETOOTH in hub.buttons.pressed():
                 wait(10)
         

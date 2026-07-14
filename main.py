@@ -3,7 +3,7 @@
 # My github account: https://github.com/tiw302, My ig account: @tiw3025k_
 
 #                    (GRIPPER)        [TOP VIEW]
-#                    [Port A]
+#                    [port A]
 #                  .----------.
 #                  | [B]  [C] |  <- sensors (L/R)
 #         .--------.----------.--------.
@@ -14,55 +14,55 @@
 #         '--------'----------'--------'
 
 """
-* port connections:                                               [ENGLISH]
-    port d = left wheel motor   (forward = auto-corrected by Pybricks)
-    port e = right wheel motor  (forward = auto-corrected by Pybricks)
-    port a = front attachment motor (gripper)
-    port f = mid attachment motor (heavy lifter)
-    port b = left color sensor
-    port c = right color sensor
+* port connections:                                               [english]
+    port D = left wheel motor   (forward = auto-corrected by pybricks)
+    port E = right wheel motor  (forward = auto-corrected by pybricks)
+    port A = front attachment motor (gripper)
+    port F = mid attachment motor (heavy lifter)
+    port B = left color sensor
+    port C = right color sensor
 
-    NOTE: SPIKE Prime / Inventor Hub has a BUILT-IN IMU (gyroscope + accelerometer).
+    note: spike prime / inventor hub has a built-in imu (gyroscope + accelerometer).
           hub.imu.heading() gives absolute yaw — no external gyro sensor needed!
           hub.imu.angular_velocity() gives real-time rotation rate.
 
 * algorithms & optimizations (international-level):
-    c-level rtos: pybricks 4.0 drivebase replaces python pid loops with 1khz c firmware
-    gyro-fused:   imu heading natively integrates with motor encoders (no drift)
-    zero-alloc:   method caching & gc.disable() eradicate garbage collection in hot loops
-    memory opt:   uses __slots__ for minimal ram footprint
-    gyro damp:    uses imu_angular_velocity to dampen line-tracking oscillation
+    C-level Rtos : pybricks 4.0 drivebase replaces python pid loops with 1khz c firmware
+    Gyro-Gused   : imu heading natively integrates with motor encoders (no drift)
+    Zero-Alloc   : method caching & gc.disable() eradicate garbage collection in hot loops
+    Memory Opt   : uses __slots__ for minimal ram footprint
+    Gyro Damp    : uses imu_angular_velocity to dampen line-tracking oscillation
 
 * pre-match checklist:
     1. update wheel_diameter_mm / axle_track_mm to match physical robot
     2. calibrate sensors: run 'debug.py', get values, update white_light / black_light
-    3. hub.imu.reset_heading(0) is called automatically (ensure robot is completely STILL on startup)
+    3. hub.imu.reset_heading(0) is called automatically (ensure robot is completely still on startup)
     4. update distance_correction from test runs
 
 ._________________________________________________________________________________________.
 
-* การต่อพอร์ต:                                                     [THAI]
-    port D = มอเตอร์ล้อซ้าย  (ตั้ง COUNTERCLOCKWISE เดินหน้าบวกปกติ)
-    port E = มอเตอร์ล้อขวา  (ตั้ง CLOCKWISE เดินหน้าบวกปกติ)
+* การต่อพอร์ต:                                                     [thai]
+    port D = มอเตอร์ล้อซ้าย  (ตั้ง counterclockwise เดินหน้าบวกปกติ)
+    port E = มอเตอร์ล้อขวา  (ตั้ง clockwise เดินหน้าบวกปกติ)
     port A = มอเตอร์แขนหน้า (gripper)
     port F = มอเตอร์แขนกลาง (ตัวยกของหนัก)
-    port B = เซนเซอร์สีซ้าย (Left Sensor)
-    port C = เซนเซอร์สีขวา (Right Sensor)
+    port B = เซนเซอร์สีซ้าย (left sensor)
+    port C = เซนเซอร์สีขวา (right sensor)
 
-    หมายเหตุ: SPIKE Prime / Inventor Hub มี IMU (ไจโรสโคป) ในตัว ไม่ต้องต่อแยก
+    หมายเหตุ: spike prime / inventor hub มี imu (ไจโรสโคป) ในตัว ไม่ต้องต่อแยก
 
 * algorithms & optimizations ที่ใช้ (international-level):
-    C-Level RTOS: เปลี่ยนจาก PID ใน Python เป็น DriveBase ที่รันด้วยภาษา C ความถี่ 1,000Hz
-    Gyro-Fused:   ผสานเซ็นเซอร์ IMU เข้ากับการหมุนล้อโดยตรง เลี้ยวและวิ่งตรงไม่มีเบี้ยว
-    Zero-Alloc:   ปิดระบบ GC ชั่วคราวในลูปเกาะเส้น หุ่นวิ่งเนียนไม่มีอาการสะดุด
-    Memory Opt:   ใช้ __slots__ รีด RAM หุ่นทำงานเร็วสุดขีด
-    Gyro Damp:    ดึงค่าส่ายของ Gyro มาต้านการแกว่งตอนเกาะเส้น
+    C-level Rtos : เปลี่ยนจาก pid ใน python เป็น drivebase ที่รันด้วยภาษา c ความถี่ 1,000hz
+    Gyro-Gused   : ผสานเซ็นเซอร์ imu เข้ากับการหมุนล้อโดยตรง เลี้ยวและวิ่งตรงไม่มีเบี้ยว
+    Zero-Alloc   : ปิดระบบ gc ชั่วคราวในลูปเกาะเส้น หุ่นวิ่งเนียนไม่มีอาการสะดุด
+    Memory Opt   : ใช้ __slots__ รีด ram หุ่นทำงานเร็วสุดขีด
+    Gyro Damp    : ดึงค่าส่ายของ gyro มาต้านการแกว่งตอนเกาะเส้น
 
 * ก่อนแข่ง:
-    1. แก้ WHEEL_DIAMETER_MM / AXLE_TRACK_MM ให้ตรงกับล้อจริง
-    2. คาลิเบรตเซนเซอร์: รันไฟล์ `debug.py` เพื่อหาค่า WHITE_LIGHT / BLACK_LIGHT จากสนามจริง
-    3. การกดรันหุ่น "ห้ามมือสั่น" เพราะระบบจะป้องกันการรีเซ็ต Gyro เพี้ยน (ต้องปล่อยมือให้สนิท)
-    4. แก้ DISTANCE_CORRECTION จากการทดสอบวิ่งจริง (100cm)
+    1. แก้ wheel_diameter_mm / axle_track_mm ให้ตรงกับล้อจริง
+    2. คาลิเบรตเซนเซอร์: รันไฟล์ `debug.py` เพื่อหาค่า white_light / black_light จากสนามจริง
+    3. การกดรันหุ่น "ห้ามมือสั่น" เพราะระบบจะป้องกันการรีเซ็ต gyro เพี้ยน (ต้องปล่อยมือให้สนิท)
+    4. แก้ distance_correction จากการทดสอบวิ่งจริง (100cm)
 """
 
 import math
@@ -77,7 +77,7 @@ from micropython import const
 #  _   _    _    ____  ______        ___    ____  _____
 # | | | |  / \  |  _ \|  _ \ \      / / \  |  _ \| ____|
 # | |_| | / _ \ | |_) | | | \ \ /\ / / _ \ | |_) |  _|
-# |  _  |/ ___ \|  _ <| |_| |\ V  V / ___ \|  _ <| |___
+# |  _  |/ ___ \|  _ <| |_| |\ v  v / ___ \|  _ <| |___
 # |_| |_/_/   \_\_| \_\____/  \_/\_/_/   \_\_| \_\_____|
 #
 # >> robot hardware configuration
@@ -105,7 +105,7 @@ def clamp(v, lo, hi):
     return v
 
 class Robot:
-    # __slots__: eliminates __dict__ on robot instance — largest single RAM saving
+    # __slots__: eliminates __dict__ on robot instance — largest single ram saving
     __slots__ = ('hub', 'left_motor', 'right_motor', 'attach_front', 'attach_mid',
                  'sensor_l', 'sensor_r', 'drive_base')
 
@@ -149,7 +149,7 @@ class Robot:
         self.check_battery()
         print("[ROBOT] ----------------------------------------")
 
-        # zero the IMU heading at startup
+        # zero the imu heading at startup
         self.hub.imu.reset_heading(0)
         print("[ROBOT] IMU heading zeroed.")
 
@@ -186,14 +186,14 @@ class Robot:
 
 #  __  __  ___  _   _ ___   ___ _____ ___    _   ___ ___ _  _ _____
 # |  \/  |/ _ \| \ / / __| / __|_   _| _ \  /_\ |_ _/ __| || |_   _|
-# | |\/| | (_) |\ V /| _|  \__ \ | | |   / / _ \ | | (_ | __ | | |
+# | |\/| | (_) |\ v /| _|  \__ \ | | |   / / _ \ | | (_ | __ | | |
 # |_|  |_|\___/  \_/ |___| |___/ |_| |_|_\/_/ \_\___\___|_||_| |_|
     def move_straight(self, distance_cm, max_speed=400, accel_frac=0.25, use_gyro=True):
         """
-        drives straight with absolute maximum precision using Pybricks C-level gyro fusion.
+        drives straight with absolute maximum precision using pybricks c-level gyro fusion.
         formula: speed_mm = (deg/s / 360) * wheel_circ
-        the built-in DriveBase operates at 1kHz in firmware, eliminating all micropython latency.
-        it uses the IMU natively to correct drift before the python loop even knows it happened.
+        the built-in drivebase operates at 1khz in firmware, eliminating all micropython latency.
+        it uses the imu natively to correct drift before the python loop even knows it happened.
         """
         distance_mm = distance_cm * 10
         self.log(f"Start: str {distance_cm}cm @ {max_speed}dps (C-Level Gyro)")
@@ -219,8 +219,8 @@ class Robot:
 #   |_|  \___/|_|_\_|\_|
     def turn(self, angle_deg, max_speed=300, use_gyro=True):
         """
-        performs a precise point-turn using Pybricks C-level gyro integration.
-        the firmware-level PID guarantees zero-drift turns without any python loop overhead.
+        performs a precise point-turn using pybricks c-level gyro integration.
+        the firmware-level pid guarantees zero-drift turns without any python loop overhead.
         formula: turn_rate = (max_speed * wheel_diam) / axle_track
         """
         self.log(f"Start: turn {angle_deg}d (C-Level Gyro)")
@@ -241,12 +241,12 @@ class Robot:
 
 #  ___ _____   _____ _____   _____ _   _ ___ _  _ 
 # | _ \_ _\ \ / / _ \_   _| |_   _| | | | _ \ \| |
-# |  _/| | \ V / (_) || |     | | | |_| |   / .` |
+# |  _/| | \ v / (_) || |     | | | |_| |   / .` |
 # |_| |___| \_/ \___/ |_|     |_|  \___/|_|_\_|\_|
     def pivot_turn(self, angle_deg, pivot_side='right', max_speed=300, use_gyro=True):
         """
         turns the robot by moving only one wheel (pivot turn).
-        uses Pybricks 4.0 DriveBase.curve() for native C-level gyro fusion and perfect profile.
+        uses pybricks 4.0 drivebase.curve() for native c-level gyro fusion and perfect profile.
         angle_deg: positive for clockwise (right), negative for counter-clockwise (left).
         pivot_side: 'right' (hold right wheel, move left) or 'left' (hold left wheel, move right).
         """
@@ -277,11 +277,11 @@ class Robot:
 # /_/ \_\____|___\___|_|\_|    \_/\_//_/ \_\____|____|
     def align_wall(self, power, time_ms, hold=True, kp=0.5):
         """
-        runs the robot into a wall using PID sync to stay straight,
+        runs the robot into a wall using pid sync to stay straight,
         but limits raw power to prevent violent stalling.
         power: raw duty cycle power -100 to 100 (positive for forward).
         time_ms: time in milliseconds to push against the wall.
-        hold: if True, applies active hold after stalling.
+        hold: if true, applies active hold after stalling.
         """
         self.log(f"Start: align wall {power}% for {time_ms}ms")
         self.reset_encoders()
@@ -323,7 +323,7 @@ class Robot:
 
     def track_line_distance(self, distance_cm, speed=300, kp=1.5, kd=0.5, use_gyro_damp=False):
         """
-        follows a line for a specific distance (in cm) using TWO color sensors.
+        follows a line for a specific distance (in cm) using two color sensors.
         error = left_sensor - right_sensor
         """
         self.log(f"Start: track line dist {distance_cm}cm @ {speed}dps")
@@ -371,7 +371,7 @@ class Robot:
 
     def track_line_timer(self, time_ms, speed=300, kp=1.5, kd=0.5, use_gyro_damp=False):
         """
-        follows a line for a specific amount of time (in milliseconds) using TWO color sensors.
+        follows a line for a specific amount of time (in milliseconds) using two color sensors.
         """
         self.log(f"Start: track line timer {time_ms}ms @ {speed}dps")
         sw      = StopWatch()
@@ -391,8 +391,9 @@ class Robot:
         gc.disable()
 
         while sw_time() < time_ms:
-            val = s_ref()
-            error = (val - target_val) * mult
+            vl = sl_ref()
+            vr = sr_ref()
+            error = vl - vr
             derivative = error - last_error
 
             gyro_damp  = 0.0
@@ -419,7 +420,7 @@ class Robot:
 
     def track_until_intersection(self, speed=300, kp=1.5, kd=0.5, use_gyro_damp=False):
         """
-        follows a line using TWO color sensors until BOTH sensors see black (intersection).
+        follows a line using two color sensors until both sensors see black (intersection).
         """
         self.log(f"Start: track until intersection @ {speed}dps")
         sl_ref      = self.sensor_l.reflection
@@ -470,8 +471,8 @@ class Robot:
 
     def drive_until_line(self, speed=300, align=True, hold=True):
         """
-        drives straight until BOTH color sensors detect a black line (intersection).
-        if align=True, it will independently stop each motor to auto-square against the line.
+        drives straight until both color sensors detect a black line (intersection).
+        if align=true, it will independently stop each motor to auto-square against the line.
         """
         self.log(f"Start: drive until line @ {speed}dps")
         
@@ -509,7 +510,7 @@ class Robot:
         self.log("Done: drive until line")
         
     def stop_drive(self, hold=True):
-        """stops both drive motors. hold=True = active hold (locks position)."""
+        """stops both drive motors. hold=true = active hold (locks position)."""
         # stop drivebase if it was currently driving
         self.drive_base.stop()
         if hold:
@@ -532,7 +533,7 @@ class Robot:
         """
         runs the attachment motor until stalled (finds mechanical endpoint).
         suitable for grippers, lifts, and deployable mechanisms.
-        motor : 'front' (Port.C) or 'mid' (Port.D)
+        motor : 'front' (port.c) or 'mid' (port.d)
         power : duty cycle limit (0-100%). controls grip/lift force at stall.
         """
         self.log(f"Start: lift {motor} (spd={speed}, pwr={power}%)")
@@ -616,8 +617,8 @@ class Robot:
             self.log("WARNING: Battery low!")
 
     def log(self, text):
-        # * NOTE: to reduce cpu load during a real match, uncomment 'pass' and comment out 'print'
-        # *       เพื่อลดภาระ CPU ตอนแข่งจริง (เซฟแบต/ลดแลค) ให้เอา # หน้าคำว่า pass ออก และใส่ # หน้า print แทน
+        # * note: to reduce cpu load during a real match, uncomment 'pass' and comment out 'print'
+        # *       เพื่อลดภาระ cpu ตอนแข่งจริง (เซฟแบต/ลดแลค) ให้เอา # หน้าคำว่า pass ออก และใส่ # หน้า print แทน
         # pass
         print(f"[ROBOT] {text}")
 
@@ -642,13 +643,13 @@ if __name__ == "__main__":
     wait(100)
 
     #   * ===============================================
-    #   *  CHEAT SHEET: ตัวอย่างการเรียกใช้ทุกฟังก์ชัน
+    #   *  cheat sheet: ตัวอย่างการเรียกใช้ทุกฟังก์ชัน
     #   * ===============================================
         # 1. การเคลื่อนที่พื้นฐาน (basic movements)
-        # robot.move_straight(50)                       # วิ่งตรง 50 ซม. ด้วย Gyro (move straight 50 cm)
+        # robot.move_straight(50)                       # วิ่งตรง 50 ซม. ด้วย gyro (move straight 50 cm)
         # robot.move_straight(50, max_speed=600)        # วิ่งตรงเร็วขึ้น 600 dps (move faster)
         # robot.move_straight(-20)                      # ถอยหลัง 20 ซม. (move backward 20 cm)
-        # robot.turn(90)                                # เลี้ยวขวา 90 องศาเป๊ะด้วย Gyro (point turn right 90 degrees)
+        # robot.turn(90)                                # เลี้ยวขวา 90 องศาเป๊ะด้วย gyro (point turn right 90 degrees)
         # robot.turn(-90)                               # เลี้ยวซ้าย 90 องศา (point turn left 90 degrees)
         
         # 2. การเลี้ยวแบบวงกว้าง (pivot turn)
@@ -658,30 +659,30 @@ if __name__ == "__main__":
         # 3. การชนกำแพงตั้งลำ (wall squaring)
         # robot.align_wall(power=-50, time_ms=1500)     # ถอยชนกำแพงด้วยพลัง -50 เป็นเวลา 1.5 วิ (square against wall for 1.5s)
         
-        # 4. การจัดการเซ็นเซอร์แสง (line & sensors - Single Sensor)
+        # 4. การจัดการเซ็นเซอร์แสง (line & sensors - single sensor)
         # robot.drive_until_line(speed=300)             # วิ่งตรงไปจนกว่าเซนเซอร์ตาเดียวจะเจอเส้นดำ (drive until black line)
         
         # การเกาะขอบเส้นด้วยเซนเซอร์ตัวเดียว (single sensor edge tracking)
         # robot.track_line_distance(20, edge='right')   # เกาะขอบขวาของเส้นไปข้างหน้าเป็นระยะ 20 ซม. (track right edge for 20 cm)
         # robot.track_line_timer(2000, edge='left')     # เกาะขอบซ้ายของเส้นเป็นเวลา 2 วินาที (track left edge for 2000 ms)
-        # robot.track_line_distance(20, use_gyro_damp=True) # เกาะเส้นแบบดึง Gyro มาช่วยกันส่ายให้นิ่งขึ้น (gyro damped tracking)
+        # robot.track_line_distance(20, use_gyro_damp=true) # เกาะเส้นแบบดึง gyro มาช่วยกันส่ายให้นิ่งขึ้น (gyro damped tracking)
         
         # 5. การบังคับมอเตอร์แขนกล (attachments)
-        # robot.lift(speed=300, power=40)               # ยกแขนกลหน้า (Port.C) จนกว่าจะชน/ตึง (stall detection)
+        # robot.lift(speed=300, power=40)               # ยกแขนกลหน้า (port.c) จนกว่าจะชน/ตึง (stall detection)
         # robot.lift_angle(90, speed=300)               # สั่งหมุนแขนกลหน้าไป 90 องศา (lift front arm 90 degrees)
         # robot.release_attachment()                    # ปล่อยพักแขนกลหน้า (release front attachment)
-        # (หมายเหตุ: ถ้าใช้งานแขนกลาง Port.D สามารถสั่งผ่าน robot.attach_mid.run() ได้โดยตรง)
+        # (หมายเหตุ: ถ้าใช้งานแขนกลาง port.d สามารถสั่งผ่าน robot.attach_mid.run() ได้โดยตรง)
         
         # 6. คำสั่งอื่นๆ (misc)
         # robot.drive(300, 300)                         # สั่งมอเตอร์วิ่งตรงๆ ความเร็ว 300 องศา/วิ (drive motors raw at 300 deg/s)
-        # robot.stop_drive(hold=True)                   # สั่งเบรกและล็อกล้อ (stop and hold wheels)
+        # robot.stop_drive(hold=true)                   # สั่งเบรกและล็อกล้อ (stop and hold wheels)
         # robot.reset_encoders()                        # รีเซ็ตค่าองศาล้อให้เป็น 0 (reset motor encoders to 0)
-        # robot.reset_heading()                         # รีเซ็ตค่า Gyro เป็น 0 (zero the gyro)
+        # robot.reset_heading()                         # รีเซ็ตค่า gyro เป็น 0 (zero the gyro)
         # robot.check_battery()                         # เช็คแบตเตอรี่พิมพ์ออกจอคอม (print battery status to console)
         # robot.calibrate_sensors()                     # สั่งคาลิเบรตเซนเซอร์บนแมตแบบสดๆ (calibrate sensors on the mat)
 
     #   * ===============================================
-    #   *  RUN: รันตรงนี้
+    #   *  run: รันตรงนี้
     #   * ===============================================
 
     robot.reset_heading() # ← zero the gyro before every run!
